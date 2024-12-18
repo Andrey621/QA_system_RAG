@@ -1,0 +1,5 @@
+transformers
+torch
+neo4j
+neo4j-graphrag
+pypdf
