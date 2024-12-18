@@ -20,7 +20,7 @@
     source venv/bin/activate
     pip install -r requirements_default.txt
 
-## Запускаем pipline
+## Запускаем pipeline
     python3 kg_builder.py
 
 ## Запускаем fastapi сервер 
