@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+neo4j
+tiktoken
+langchain-community
+langchain
+langchain_experimental
+json-repair
+langchain_neo4j
+langchain_ollama
+langchain-neo4j
+sentence-transformers
