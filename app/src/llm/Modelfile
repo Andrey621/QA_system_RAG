@@ -1,0 +1,2 @@
+FROM qwen:0.5b
+ADAPTER /app/models/fine_tuned/marketing-train-v1

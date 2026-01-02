@@ -1,0 +1,30 @@
+# Python/virtualenv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite
+.venv/
+venv/
+
+# IDE/cache
+.idea/
+.vscode/
+.mypy_cache/
+.pytest_cache/
+
+# Heavy models/data (монтируются отдельно)
+models/
+../data/
+../data_for_graph/
+../data_for_train/
+../logs/
+../src/llm/ollama_data/
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar

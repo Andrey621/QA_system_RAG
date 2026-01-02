@@ -1,0 +1,60 @@
+@startuml
+top to bottom direction
+
+title State Diagram - Сравнение Качества Ответов
+
+[*] -down-> Idle
+
+state Idle : Начальное состояние\nОжидание выбора режима.
+state WaitingForQuestion : Ожидание ввода\nвопроса от пользователя.
+state ProcessingComparison : Обработка запроса\nсравнения ответов.
+state FetchingLocalAnswer : Получение ответа\nот локальной модели (Qwen).
+state FetchingYandexAnswer : Получение ответа\nот Yandex GPT.
+state CalculatingSimilarity : Расчет косинусного\nсходства эмбеддингов.
+state GeneratingReport : Формирование\nфинального отчета.
+state SendingResult : Отправка результата\nпользователю.
+
+Idle -down-> WaitingForQuestion : Пользователь выбирает\n"Сравнить качество ответов"
+WaitingForQuestion -down-> ProcessingComparison : Получен вопрос от пользователя
+ProcessingComparison -down-> FetchingLocalAnswer : Начало обработки
+FetchingLocalAnswer -down-> FetchingYandexAnswer : Получен ответ от локальной LLM
+FetchingYandexAnswer -down-> CalculatingSimilarity : Получен ответ от Yandex GPT
+CalculatingSimilarity -down-> GeneratingReport : Рассчитано сходство
+GeneratingReport -down-> SendingResult : Сформирован отчет
+SendingResult -down-> [*] : Результат отправлен\nпользователю
+
+note right of ProcessingComparison
+  Сервер получает запрос
+  POST /compare_answers/
+  с QuestionRequest
+end note
+
+note right of FetchingLocalAnswer
+  Вызов llm.invoke()
+  с отформатированным вопросом
+end note
+
+note right of FetchingYandexAnswer
+  Вызов get_yandex_gpt_response()
+  с отформатированным вопросом
+end note
+
+note right of CalculatingSimilarity
+  Расчет:
+  1. embeddings.embed_query() для обоих ответов
+  2. cosine_similarity()
+  3. Нормализация в quality_score
+end note
+
+note right of GeneratingReport
+  CompareAnswersResponse:
+  - question, local_answer, yandex_answer
+  - quality_score, cosine_similarity_score
+  - interpretation
+end note
+
+note right of SendingResult
+  Отправка JSON-ответа через API
+end note
+
+@enduml

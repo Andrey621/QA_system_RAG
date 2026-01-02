@@ -1,0 +1,96 @@
+@startuml
+title Activity Diagram - Подробная
+
+start
+
+:Получение HTTP POST запроса на эндпоинт /process_pdf/ с параметром pdf_file типа UploadFile;
+
+:Создание переменной temp_pdf_path = "temp_uploaded_file.pdf";
+
+partition "Сохранение файла" {
+  :Открытие файла temp_uploaded_file.pdf в режиме записи (wb);
+  :Чтение содержимого загруженного PDF через await pdf_file.read();
+  :Запись содержимого в temp_uploaded_file.pdf;
+  :Закрытие файлового дескриптора;
+  :Логирование "Файл сохранен";
+}
+
+partition "Загрузка PDF" {
+  :Создание экземпляра PyPDFLoader(temp_pdf_path);
+  :Вызов loader.load() для извлечения текста;
+  :Получение списка документов documents;
+
+  if ("documents пустой или None?") then (да)
+    :Логирование "Из PDF не загружено документов";
+
+    partition "Обработка пустого PDF" {
+      :Проверка существования temp_pdf_path;
+      if ("Файл существует?") then (да)
+        :Удаление temp_uploaded_file.pdf через os.remove();
+        :Логирование "Временный файл удален";
+      else (нет)
+        :Пропуск удаления;
+      endif
+
+      :Создание ProcessPdfResponse с message="PDF обработан, но не содержит извлекаемого текста";
+      :Возврат HTTP 200 с JSON ответом;
+    }
+    stop
+  else (нет)
+    :Логирование "Загружено N частей документа (N = len(documents))";
+  endif
+}
+
+partition "Разделение текста" {
+  :Создание TokenTextSplitter с chunk_size=512, chunk_overlap=24;
+  :Вызов text_splitter.split_documents(documents);
+  :Получение split_documents - список фрагментов;
+  :Логирование "Текст разделен на N фрагментов (N = len(split_documents))";
+}
+
+partition "Преобразование в граф" {
+  :Создание LLMGraphTransformer с llm = OllamaLLM(model="qwen:0.5b");
+  :Вызов llm_transformer.convert_to_graph_documents(split_documents);
+  :Получение graph_documents - список GraphDocument;
+  :Логирование "Преобразовано в N графовых документов (N = len(graph_documents))";
+}
+
+partition "Добавление в Neo4j" {
+  if ("graph_documents пустой?") then (да)
+    :Логирование "Нет графовых документов для добавления";
+
+    partition "Завершение при пустом графе" {
+      :Проверка существования temp_pdf_path;
+      if ("Файл существует?") then (да)
+        :Удаление temp_uploaded_file.pdf;
+        :Логирование "Временный файл удален";
+      else (нет)
+        :Пропуск удаления;
+      endif
+
+      :Создание ProcessPdfResponse с message="PDF обработан, граф пуст";
+      :Возврат HTTP 200 с JSON ответом;
+    }
+    stop
+  else (нет)
+    :Вызов graph.add_graph_documents(graph_documents, baseEntityLabel=True, include_source=True);
+    :Логирование "Графовые документы успешно добавлены в Neo4j";
+  endif
+}
+
+partition "Завершение и очистка" {
+  :Проверка существования temp_pdf_path;
+  if ("Файл существует?") then (да)
+    :Удаление temp_uploaded_file.pdf через os.remove();
+    :Логирование "Временный файл удален";
+  else (нет)
+    :Логирование предупреждения "Не удалось удалить временный файл";
+  endif
+
+  :Создание ProcessPdfResponse с message="PDF обработан и граф загружен в Neo4j";
+  :Возврат HTTP 200 с JSON ответом;
+}
+
+stop
+
+@enduml
